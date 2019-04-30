@@ -1,0 +1,86 @@
+﻿html, body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    background-color: #bbb;
+  }
+  
+  #outer-screen {
+    background-color: #111;
+    padding: 3em;
+    margin: 2vw auto;
+    border-radius: 1vw;
+  }
+  
+  #inner-screen {
+    color: #f8f8f8;
+    font-family: "Courier New", monospace;
+    font-size: 2vw;
+    text-align: left;
+    width: 100%;
+  }
+  
+  #output-outer {
+    overflow: hidden;
+    height: 60ex;
+    line-height: 3ex;
+    position: relative;
+  }
+  
+  #output {
+    /* Make text overflow off the top. */
+    position: absolute;
+    bottom: 0;
+  }
+
+  #output .error {
+      color: red;
+  }
+
+  #output .info {
+    color: yellow;
+  }
+  
+  #input {
+    background-color: #111;
+    color: #f8f8f8;
+    font: inherit;
+    border: none;
+    outline: none;
+    caret-color: inherit;
+    width: 90%;
+  }
+  #input::-ms-clear {
+    /* Hide the X clear button microsoft puts in input fields. */
+    display: none;
+  }
+  
+  @media screen and (max-width: 649px) {
+    #outer-screen {
+      padding: 2vw;
+      border-radius: 0.5vw;
+    }
+  }
+  
+  @media screen and (min-width: 650px) and (max-width: 1012px) {
+    #outer-screen {
+      padding: 3vw;
+      margin-left: 2vw;
+      margin-right: 2vw;
+    }
+  }
+  
+  /* breakpoint = (screenWidthPx + 2 * screenPaddingPx) * (100 / (100 - 2 * screenMarginVw)) */
+  /* In this case, breakpoint = (900 + 2 * 36) * (100 / (100 - 2 * 2)) = 1012.5px */
+  @media screen and (min-width: 1013px) {
+    #outer-screen {
+      width: 900px;
+      padding: 36px;
+      border-radius: 8px;
+    }
+    #inner-screen {
+      font-size: 20px;
+    }
+  }

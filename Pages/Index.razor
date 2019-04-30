@@ -1,0 +1,153 @@
+﻿
+@layout MainLayout
+@page "/"
+
+<div id="outer-screen">
+  <div id="inner-screen">
+    <div id="output-outer"><div id="output">@((MarkupString)Output)</div></div>
+    <div id="blank-line">&nbsp;</div>
+    <div id="input-row">
+      <span>&gt;&nbsp;</span><input id="input" bind="@Input" type="text" onkeyup="@Run" autofocus />
+    </div>
+  </div>
+</div>
+
+@functions {
+
+        public string Output { get; set; } = "";
+        public string Input { get; set; } = "";
+        private CSharpCompilation _previousCompilation;
+        private IEnumerable<MetadataReference> _references;
+        private object[] _submissionStates = new object[] { null, null };
+        private int _submissionIndex = 0;
+        private bool _isInitialized = false;
+
+        protected async override Task OnInitAsync()
+        {
+            var refs = AppDomain.CurrentDomain.GetAssemblies();
+            var client = new HttpClient 
+            {
+                 BaseAddress = new Uri(WebAssemblyUriHelper.Instance.GetBaseUri())
+            };
+
+            var references = new List<MetadataReference>();
+
+            foreach(var reference in refs.Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location)))
+            {
+                var stream = await client.GetStreamAsync($"_framework/_bin/{reference.Location}");
+                references.Add(MetadataReference.CreateFromStream(stream));
+            }
+
+            _references = references;
+        }
+
+        public async Task Run(UIKeyboardEventArgs e)
+        {
+            if (e.Key != "Enter")
+            {
+                return;
+            }
+
+            var code = Input;
+            Input = "";
+
+            await RunSubmission(code);
+        }
+
+        private async Task RunSubmission(string code)
+        {
+            Output += $@"<br /><span class=""info"">{code}</span>";
+
+            var previousOut = Console.Out;
+            try
+            {
+                if (TryCompile(code, out var script, out var errorDiagnostics))
+                {
+                    var writer = new StringWriter();
+                    Console.SetOut(writer);
+
+                    var type = script.GetType("Script");
+                    var entryPointMethod = type.GetMethod("<Factory>", BindingFlags.Static | BindingFlags.Public);
+
+                    var submission = (Func<object[], Task>)entryPointMethod.CreateDelegate(typeof(Func<object[], Task>));
+
+                    if (_submissionIndex >= _submissionStates.Length) 
+                    {
+                        Array.Resize(ref _submissionStates, Math.Max(_submissionIndex, _submissionStates.Length * 2));
+                    }
+
+                    var returnValue = await ((Task<object>)submission(_submissionStates));
+                    if (returnValue != null)
+                    {
+                        Console.WriteLine(CSharpObjectFormatter.Instance.FormatObject(returnValue));
+                    }
+
+                    var output = writer.ToString();
+                    if (!string.IsNullOrWhiteSpace(output)) 
+                    {
+                        Output += $"<br />{output}";
+                    }
+                } 
+                else 
+                {
+                    foreach (var diag in errorDiagnostics)
+                    {
+                        Output += $@"<br / ><span class=""error"">{diag}</span>";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Output += $@"<br /><span class=""error"">{CSharpObjectFormatter.Instance.FormatException(ex)}</span>";
+            }
+            finally 
+            {
+                Console.SetOut(previousOut);
+            }
+        }
+
+        private bool TryCompile(string source, out Assembly assembly, out IEnumerable<Diagnostic> errorDiagnostics)
+        {
+            assembly = null;
+            var scriptCompilation = CSharpCompilation.CreateScriptCompilation(
+                Path.GetRandomFileName(), 
+                CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default.WithKind(SourceCodeKind.Script).WithLanguageVersion(LanguageVersion.Preview)),
+                _references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, usings: new[] 
+                { 
+                    "System",
+                    "System.IO",
+                    "System.Collections.Generic",
+                    "System.Console",
+                    "System.Diagnostics",
+                    "System.Dynamic",
+                    "System.Linq",
+                    "System.Linq.Expressions",
+                    "System.Text",
+                    "System.Threading.Tasks" 
+                }),
+                _previousCompilation
+            );
+
+            errorDiagnostics = scriptCompilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error);
+            if (errorDiagnostics.Any())
+            {
+                return false;
+            }
+
+            using (var peStream = new MemoryStream())
+            {
+                var emitResult = scriptCompilation.Emit(peStream);
+
+                if (emitResult.Success)
+                {
+                    _submissionIndex++;
+                    _previousCompilation = scriptCompilation;
+                    assembly = Assembly.Load(peStream.ToArray());
+                    return true;
+                }
+            }
+
+            return false;
+        }
+}
