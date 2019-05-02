@@ -23,16 +23,11 @@
   }
   
   #output-outer {
-    overflow: hidden;
+    overflow: scroll;
     height: 60ex;
     line-height: 3ex;
-    position: relative;
-  }
-  
-  #output {
-    /* Make text overflow off the top. */
-    position: absolute;
-    bottom: 0;
+    display: flex;
+    flex-direction: column-reverse
   }
 
   #output .error {

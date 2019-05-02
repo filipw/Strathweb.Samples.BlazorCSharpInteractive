@@ -20,7 +20,6 @@
         private IEnumerable<MetadataReference> _references;
         private object[] _submissionStates = new object[] { null, null };
         private int _submissionIndex = 0;
-        private bool _isInitialized = false;
 
         protected async override Task OnInitAsync()
         {
@@ -56,7 +55,7 @@
 
         private async Task RunSubmission(string code)
         {
-            Output += $@"<br /><span class=""info"">{code}</span>";
+            Output += $@"<br /><span class=""info"">{HttpUtility.HtmlEncode(code)}</span>";
 
             var previousOut = Console.Out;
             try
@@ -82,7 +81,7 @@
                         Console.WriteLine(CSharpObjectFormatter.Instance.FormatObject(returnValue));
                     }
 
-                    var output = writer.ToString();
+                    var output = HttpUtility.HtmlEncode(writer.ToString());
                     if (!string.IsNullOrWhiteSpace(output)) 
                     {
                         Output += $"<br />{output}";
@@ -92,13 +91,13 @@
                 {
                     foreach (var diag in errorDiagnostics)
                     {
-                        Output += $@"<br / ><span class=""error"">{diag}</span>";
+                        Output += $@"<br / ><span class=""error"">{HttpUtility.HtmlEncode(diag)}</span>";
                     }
                 }
             }
             catch (Exception ex)
             {
-                Output += $@"<br /><span class=""error"">{CSharpObjectFormatter.Instance.FormatException(ex)}</span>";
+                Output += $@"<br /><span class=""error"">{HttpUtility.HtmlEncode(CSharpObjectFormatter.Instance.FormatException(ex))}</span>";
             }
             finally 
             {
@@ -123,6 +122,7 @@
                     "System.Dynamic",
                     "System.Linq",
                     "System.Linq.Expressions",
+                    "System.Net.Http",
                     "System.Text",
                     "System.Threading.Tasks" 
                 }),
