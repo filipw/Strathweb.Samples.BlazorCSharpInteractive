@@ -23,7 +23,7 @@
   }
   
   #output-outer {
-    overflow: scroll;
+    overflow: auto;
     height: 60ex;
     line-height: 3ex;
     display: flex;
