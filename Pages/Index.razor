@@ -6,13 +6,14 @@
     <div id="output-outer"><div id="output">@((MarkupString)Output)</div></div>
     <div id="blank-line">&nbsp;</div>
     <div id="input-row">
-      <span>&gt;&nbsp;</span><input id="input" bind="@Input" type="text" onkeyup="@Run" autofocus />
+      <span>&gt;&nbsp;</span><input id="input" bind="@Input" type="text" onkeyup="@Run" disabled="@Disabled" autofocus />
     </div>
   </div>
 </div>
 
 @functions {
 
+        public bool Disabled { get; set; } = true;
         public string Output { get; set; } = "";
         public string Input { get; set; } = "";
         private CSharpCompilation _previousCompilation;
@@ -35,7 +36,7 @@
                 var stream = await client.GetStreamAsync($"_framework/_bin/{reference.Location}");
                 references.Add(MetadataReference.CreateFromStream(stream));
             }
-
+            Disabled = false;
             _references = references;
         }
 
