@@ -1,5 +1,4 @@
-﻿
-@layout MainLayout
+﻿@layout MainLayout
 @page "/"
 
 <div id="outer-screen">
@@ -65,9 +64,10 @@
                     var writer = new StringWriter();
                     Console.SetOut(writer);
 
-                    var type = script.GetType("Script");
-                    var entryPointMethod = type.GetMethod("<Factory>", BindingFlags.Static | BindingFlags.Public);
-
+                    var entryPoint = _previousCompilation.GetEntryPoint(CancellationToken.None);
+                    var type = script.GetType($"{entryPoint.ContainingNamespace.MetadataName}.{entryPoint.ContainingType.MetadataName}");
+                    var entryPointMethod = type.GetMethod(entryPoint.MetadataName);
+                    
                     var submission = (Func<object[], Task>)entryPointMethod.CreateDelegate(typeof(Func<object[], Task>));
 
                     if (_submissionIndex >= _submissionStates.Length) 
