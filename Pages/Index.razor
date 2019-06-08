@@ -6,7 +6,7 @@
     <div id="output-outer"><div id="output">@((MarkupString)Output)</div></div>
     <div id="blank-line">&nbsp;</div>
     <div id="input-row">
-      <span>&gt;&nbsp;</span><input id="input" bind="@Input" type="text" onkeyup="@Run" disabled="@Disabled" autofocus />
+      <span>&gt;&nbsp;</span><input id="input" bind="@Input" type="text" onkeydown="@OnKeyDown" onkeyup="@Run" disabled="@Disabled" autofocus />
     </div>
   </div>
 </div>
@@ -20,6 +20,8 @@
         private IEnumerable<MetadataReference> _references;
         private object[] _submissionStates = new object[] { null, null };
         private int _submissionIndex = 0;
+        private List<string> _history  = new List<string>();
+        private int _historyIndex = 0;
 
         protected async override Task OnInitAsync()
         {
@@ -40,6 +42,28 @@
             _references = references;
         }
 
+        public void OnKeyDown(UIKeyboardEventArgs e)
+        {
+            if (e.Key == "ArrowUp" && _historyIndex > 0)
+            {
+                _historyIndex--;
+                Input = _history[_historyIndex];
+            }
+            else if (e.Key == "ArrowDown" &&  _historyIndex + 1 < _history.Count)
+            {
+                _historyIndex++;
+                Input = _history[_historyIndex];
+            }
+            // todo:  doesn't work right when typing new command.  Requires Enter to be pressed first sometimes
+            // has to do with DOM focus I think
+            // currently handling this with javascript as well
+            else if (e.Key == "Escape")
+            {
+                Input = "";
+                _historyIndex = _history.Count;
+            }
+        }
+
         public async Task Run(UIKeyboardEventArgs e)
         {
             if (e.Key != "Enter")
@@ -48,6 +72,11 @@
             }
 
             var code = Input;
+            if (!string.IsNullOrEmpty(code))
+            {
+                _history.Add(code);
+            }
+            _historyIndex = _history.Count;
             Input = "";
 
             await RunSubmission(code);
