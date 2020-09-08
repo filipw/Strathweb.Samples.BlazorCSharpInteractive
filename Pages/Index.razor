@@ -1,4 +1,5 @@
 ﻿@layout MainLayout
+@inject NavigationManager navigationManager
 @page "/"
 
 <div id="outer-screen">
@@ -6,7 +7,7 @@
     <div id="output-outer"><div id="output">@((MarkupString)Output)</div></div>
     <div id="blank-line">&nbsp;</div>
     <div id="input-row">
-      <span>&gt;&nbsp;</span><input id="input" bind="@Input" type="text" onkeydown="@OnKeyDown" onkeyup="@Run" disabled="@Disabled" autofocus />
+      <span>&gt;&nbsp;</span><input id="input" @bind="Input" type="text" @onkeydown="OnKeyDown" @onkeyup="Run" autofocus />
     </div>
   </div>
 </div>
@@ -23,26 +24,26 @@
         private List<string> _history  = new List<string>();
         private int _historyIndex = 0;
 
-        protected async override Task OnInitAsync()
+        protected async override Task OnInitializedAsync()
         {
             var refs = AppDomain.CurrentDomain.GetAssemblies();
             var client = new HttpClient 
             {
-                 BaseAddress = new Uri(WebAssemblyUriHelper.Instance.GetBaseUri())
+                 BaseAddress = new Uri(navigationManager.BaseUri)
             };
 
             var references = new List<MetadataReference>();
 
             foreach(var reference in refs.Where(x => !x.IsDynamic && !string.IsNullOrWhiteSpace(x.Location)))
             {
-                var stream = await client.GetStreamAsync($"_framework/_bin/{reference.Location}");
+                var stream = await client.GetStreamAsync($"_framework/{reference.Location}");
                 references.Add(MetadataReference.CreateFromStream(stream));
             }
             Disabled = false;
             _references = references;
         }
 
-        public void OnKeyDown(UIKeyboardEventArgs e)
+        public void OnKeyDown(KeyboardEventArgs e)
         {
             if (e.Key == "ArrowUp" && _historyIndex > 0)
             {
@@ -64,7 +65,7 @@
             }
         }
 
-        public async Task Run(UIKeyboardEventArgs e)
+        public async Task Run(KeyboardEventArgs e)
         {
             if (e.Key != "Enter")
             {
